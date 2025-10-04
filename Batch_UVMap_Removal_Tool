@@ -1,0 +1,74 @@
+bl_info = {
+    "name": "Safe Batch Remove UV Maps",
+    "blender": (4, 5, 1),
+    "category": "Object",
+    "author": "Agroithien",
+    "version": (1, 1),
+    "description": "Safely removes UV maps from selected or all mesh objects, with confirmation",
+    "location": "View3D > Sidebar > Edit Tab > Remove UV Maps"
+}
+
+import bpy
+
+class OBJECT_OT_safe_remove_uv_maps(bpy.types.Operator):
+    """Remove all UV maps from selected or all objects"""
+    bl_idname = "object.safe_remove_uv_maps"
+    bl_label = "Remove UV Maps"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    remove_from: bpy.props.EnumProperty(
+        name="Remove From",
+        items=[
+            ('SELECTED', "Selected Objects", "Remove UV maps only from selected objects"),
+            ('ALL', "All Mesh Objects", "Remove UV maps from every mesh in the scene")
+        ],
+        default='SELECTED'
+    )
+
+    def execute(self, context):
+        count = 0
+
+        if self.remove_from == 'SELECTED':
+            objects = context.selected_objects
+        else:
+            objects = bpy.data.objects
+
+        for obj in objects:
+            if obj.type == 'MESH':
+                uv_layers = obj.data.uv_layers
+                while uv_layers:
+                    uv_layers.remove(uv_layers[0])
+                count += 1
+
+        self.report({'INFO'}, f"✅ Removed UV maps from {count} objects.")
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        # Confirmation dialog before execution
+        return context.window_manager.invoke_props_dialog(self)
+
+
+class VIEW3D_PT_safe_remove_uv_maps(bpy.types.Panel):
+    """Creates a Panel in the 3D View Sidebar"""
+    bl_label = "Safe Remove UV Maps"
+    bl_idname = "VIEW3D_PT_safe_remove_uv_maps"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Edit"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="⚠️ Batch UV Maps Removal Tool ⚠️")
+        layout.operator("object.safe_remove_uv_maps", icon="ERROR")
+
+
+def register():
+    bpy.utils.register_class(OBJECT_OT_safe_remove_uv_maps)
+    bpy.utils.register_class(VIEW3D_PT_safe_remove_uv_maps)
+
+def unregister():
+    bpy.utils.unregister_class(OBJECT_OT_safe_remove_uv_maps)
+    bpy.utils.unregister_class(VIEW3D_PT_safe_remove_uv_maps)
+
+if __name__ == "__main__":
+    register()
